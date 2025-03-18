@@ -2,7 +2,8 @@ const CACHE_NAME = "offline-cache-v4";
 const urlsToCache = [
     "/",
     "index.html",
-    "https://raw.githubusercontent.com/LeticiaC16/banana/refs/heads/main/cartao_282.txt" // Adicionando o arquivo .txt ao cache
+    // Atualizando o arquivo para cartao_282.txt
+    "https://raw.githubusercontent.com/LeticiaC16/treinamento/refs/heads/main/cartao_282.txt" // Atualização do nome do arquivo
 ];
 
 self.addEventListener("install", (event) => {
