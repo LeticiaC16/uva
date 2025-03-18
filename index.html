@@ -3,14 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abrir PDF ou Exibir Conteúdo Offline</title>
+    <title>Abrir PNG ou Exibir Conteúdo Offline</title>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('service-worker.js');
         }
 
-        // URL do arquivo .txt no GitHub (raw)
-        const arquivoTxtUrl = "https://raw.githubusercontent.com/LeticiaC16/uva/refs/heads/main/cartao_282.txt";
+        // Obtém a matrícula da URL (caso seja passado um parâmetro)
+        function obterMatricula() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("matricula") || "282"; // Padrão: 282
+        }
+
+        const matricula = obterMatricula();
+
+        // URLs baseadas na matrícula
+        const arquivoPngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
+        const arquivoTxtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
 
         async function carregarConteudoTexto() {
             try {
@@ -37,14 +46,19 @@
         }
 
         window.onload = function() {
-            if (navigator.onLine) {
-                // Carregar e exibir o PDF quando estiver online
-                window.location.href = "https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_282.png";
-            } else {
-                // Carregar e exibir o conteúdo do .txt quando estiver offline
-                document.getElementById("offline-options").style.display = "block";
-                carregarConteudoTexto();
-            }
+            fetch(arquivoPngUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = arquivoPngUrl; // Se PNG estiver disponível, abre ele
+                    } else {
+                        document.getElementById("offline-options").style.display = "block";
+                        carregarConteudoTexto(); // Caso contrário, carrega o TXT
+                    }
+                })
+                .catch(() => {
+                    document.getElementById("offline-options").style.display = "block";
+                    carregarConteudoTexto();
+                });
         };
 
         function copiarParaClipboard() {
@@ -63,3 +77,4 @@
     </div>
 </body>
 </html>
+
