@@ -1,4 +1,4 @@
-const CACHE_NAME = "offline-cache-v7";
+const CACHE_NAME = "offline-cache-v8";
 
 self.addEventListener("install", (event) => {
     event.waitUntil(
@@ -36,19 +36,26 @@ self.addEventListener("fetch", (event) => {
             event.respondWith(
                 fetch(txtUrl)
                     .then((response) => {
+                        // Se o arquivo for encontrado online, faz o cache dele
                         let responseClone = response.clone();
                         caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(txtUrl, responseClone);
+                            cache.put(txtUrl, responseClone); // Armazena o arquivo no cache
                         });
-                        return response;
+                        return response; // Retorna a resposta normalmente
                     })
                     .catch(() => {
+                        // Se estiver offline, tenta obter o arquivo do cache
                         return caches.match(txtUrl).then((cachedResponse) => {
-                            return cachedResponse || caches.match("index.html");
+                            if (cachedResponse) {
+                                return cachedResponse; // Retorna o arquivo cacheado
+                            } else {
+                                // Se o arquivo não estiver no cache, retorna o fallback (index.html)
+                                return caches.match("index.html");
+                            }
                         });
                     })
             );
-            return;
+            return; // Retorna para evitar o código abaixo
         }
     }
 
@@ -56,7 +63,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request).then((response) => {
-                return response || caches.match("index.html");
+                return response || caches.match("index.html"); // Fallback para index.html se não encontrar
             });
         })
     );
