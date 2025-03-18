@@ -3,47 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abrindo Arquivo</title>
+    <title>Abrir PDF ou Exibir Conteúdo Offline</title>
     <script>
-        function obterMatricula() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get("matricula"); // Pega a matrícula da URL
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js');
         }
 
-        function abrirArquivo() {
-            const matricula = obterMatricula();
-            if (!matricula) {
-                document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
-                return;
+        // URL do arquivo .txt no GitHub (raw)
+        const arquivoTxtUrl = "https://raw.githubusercontent.com/LeticiaC16/uva/refs/heads/main/cartao_282.txt";
+
+        async function carregarConteudoTexto() {
+            try {
+                const response = await fetch(arquivoTxtUrl);
+                if (!response.ok) {
+                    throw new Error("Erro ao carregar o arquivo.");
+                }
+                const conteudoTexto = await response.text();
+                localStorage.setItem("conteudoDocumento", conteudoTexto);
+
+                // Exibe o conteúdo na tela
+                document.getElementById("conteudoOffline").innerText = conteudoTexto;
+            } catch (error) {
+                console.log("Erro ao carregar o arquivo:", error);
+                document.getElementById("offline-options").style.display = "block";
+                const textoSalvo = localStorage.getItem("conteudoDocumento");
+
+                if (textoSalvo) {
+                    document.getElementById("conteudoOffline").innerText = textoSalvo;
+                } else {
+                    document.getElementById("conteudoOffline").innerText = "Conteúdo não disponível.";
+                }
             }
+        }
 
-            const pngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
-            const txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
-
+        window.onload = function() {
             if (navigator.onLine) {
-                // Se estiver online, abre o PNG
-                window.location.href = pngUrl;
+                // Carregar e exibir o PDF quando estiver online
+                window.location.href = "https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_282.png";
             } else {
-                // Se estiver offline, tenta carregar o TXT
-                fetch(txtUrl)
-                    .then(response => response.text())
-                    .then(texto => {
-                        document.body.innerHTML = `
-                            <h2>Você está offline</h2>
-                            <p><strong>Conteúdo salvo:</strong> ${texto}</p>
-                        `;
-                    })
-                    .catch(() => {
-                        document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
-                    });
+                // Carregar e exibir o conteúdo do .txt quando estiver offline
+                document.getElementById("offline-options").style.display = "block";
+                carregarConteudoTexto();
             }
-        }
+        };
 
-        window.onload = abrirArquivo;
+        function copiarParaClipboard() {
+            const texto = document.getElementById("conteudoOffline").innerText;
+            navigator.clipboard.writeText(texto).then(() => {
+                alert("Conteúdo copiado!");
+            });
+        }
     </script>
 </head>
 <body>
-    <h2>Verificando conexão...</h2>
+    <div id="offline-options" style="display: none; text-align: center; padding: 20px;">
+        <h2 id="offline-message">Sem internet? Você ainda pode acessar o conteúdo!</h2>
+        <p><strong>Conteúdo salvo:</strong> <span id="conteudoOffline"></span></p>
+        <button onclick="copiarParaClipboard()" style="font-size: 16px; padding: 10px;">Copiar Conteúdo</button>
+    </div>
 </body>
 </html>
-

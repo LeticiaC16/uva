@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Abrindo Arquivo</title>
+    <script>
+        function obterMatricula() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get("matricula"); // Pega a matrícula da URL
+        }
+
+        function abrirArquivo() {
+            const matricula = obterMatricula();
+            if (!matricula) {
+                document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
+                return;
+            }
+
+            const pngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
+            const txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
+
+            if (navigator.onLine) {
+                // Se estiver online, abre o PNG
+                window.location.href = pngUrl;
+            } else {
+                // Se estiver offline, tenta carregar o TXT
+                fetch(txtUrl)
+                    .then(response => response.text())
+                    .then(texto => {
+                        document.body.innerHTML = `
+                            <h2>Você está offline</h2>
+                            <p><strong>Conteúdo salvo:</strong> ${texto}</p>
+                        `;
+                    })
+                    .catch(() => {
+                        document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
+                    });
+            }
+        }
+
+        window.onload = abrirArquivo;
+    </script>
+</head>
+<body>
+    <h2>Verificando conexão...</h2>
+</body>
+</html>
