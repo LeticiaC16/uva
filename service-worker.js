@@ -15,12 +15,13 @@ self.addEventListener("activate", (event) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        return caches.delete(cache); // Removendo caches antigos
+                        return caches.delete(cache);
                     }
                 })
             );
         })
     );
+    self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
@@ -36,34 +37,34 @@ self.addEventListener("fetch", (event) => {
             event.respondWith(
                 fetch(txtUrl)
                     .then((response) => {
-                        // Se o arquivo for encontrado online, faz o cache dele
                         let responseClone = response.clone();
                         caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(txtUrl, responseClone); // Armazena o arquivo no cache
+                            cache.put(txtUrl, responseClone);
                         });
-                        return response; // Retorna a resposta normalmente
+                        return response;
                     })
                     .catch(() => {
-                        // Se estiver offline, tenta obter o arquivo do cache
                         return caches.match(txtUrl).then((cachedResponse) => {
                             if (cachedResponse) {
-                                return cachedResponse; // Retorna o arquivo cacheado
+                                return cachedResponse;
                             } else {
-                                // Se o arquivo não estiver no cache, retorna o fallback (index.html)
-                                return caches.match("index.html");
+                                return new Response("Arquivo offline não encontrado!", {
+                                    status: 404,
+                                    statusText: "Not Found",
+                                });
                             }
                         });
                     })
             );
-            return; // Retorna para evitar o código abaixo
+            return;
         }
     }
 
-    // Se não for um arquivo TXT, usa a abordagem padrão do cache
+    // Para outras requisições, segue a estratégia padrão de cache
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request).then((response) => {
-                return response || caches.match("index.html"); // Fallback para index.html se não encontrar
+                return response || caches.match("index.html");
             });
         })
     );
