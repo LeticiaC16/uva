@@ -1,65 +1,57 @@
-<!DOCTYPE html>
+<<!DOCTYPE html>
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abrir PDF ou Exibir Conteúdo Offline</title>
+    <title>Abrindo Arquivo</title>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('service-worker.js');
+        function obterMatricula() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get("matricula"); // Pega a matrícula da URL
         }
 
-        // URL do arquivo .txt no GitHub (raw)
-        const arquivoTxtUrl = "https://raw.githubusercontent.com/LeticiaC16/uva/refs/heads/main/cartao_282.txt";
-
-        async function carregarConteudoTexto() {
-            try {
-                const response = await fetch(arquivoTxtUrl);
-                if (!response.ok) {
-                    throw new Error("Erro ao carregar o arquivo.");
-                }
-                const conteudoTexto = await response.text();
-                localStorage.setItem("conteudoDocumento", conteudoTexto);
-
-                // Exibe o conteúdo na tela
-                document.getElementById("conteudoOffline").innerText = conteudoTexto;
-            } catch (error) {
-                console.log("Erro ao carregar o arquivo:", error);
-                document.getElementById("offline-options").style.display = "block";
-                const textoSalvo = localStorage.getItem("conteudoDocumento");
-
-                if (textoSalvo) {
-                    document.getElementById("conteudoOffline").innerText = textoSalvo;
-                } else {
-                    document.getElementById("conteudoOffline").innerText = "Conteúdo não disponível.";
-                }
+        function abrirArquivo() {
+            const matricula = obterMatricula();
+            if (!matricula) {
+                document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
+                return;
             }
-        }
 
-        window.onload = function() {
+            const pngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
+            const txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
+
             if (navigator.onLine) {
-                // Carregar e exibir o PDF quando estiver online
-                window.location.href = "https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_282.png";
-            } else {
-                // Carregar e exibir o conteúdo do .txt quando estiver offline
-                document.getElementById("offline-options").style.display = "block";
-                carregarConteudoTexto();
-            }
-        };
+                // Se estiver online, abre o PNG
+                window.location.href = pngUrl;
 
-        function copiarParaClipboard() {
-            const texto = document.getElementById("conteudoOffline").innerText;
-            navigator.clipboard.writeText(texto).then(() => {
-                alert("Conteúdo copiado!");
-            });
+                // Carrega o conteúdo do TXT e armazena no localStorage
+                fetch(txtUrl)
+                    .then(response => response.text())
+                    .then(texto => {
+                        // Salva o conteúdo do TXT para uso offline futuro
+                        localStorage.setItem(`cartao_${matricula}_txt`, texto);
+                    })
+                    .catch((error) => {
+                        console.error("Erro ao tentar acessar o arquivo TXT online:", error);
+                    });
+            } else {
+                // Se estiver offline, tenta carregar o TXT do localStorage
+                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
+                if (textoOffline) {
+                    document.body.innerHTML = `
+                        <h2>Você está offline</h2>
+                        <p><strong>Conteúdo salvo:</strong> ${textoOffline}</p>
+                    `;
+                } else {
+                    document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
+                }
+            }
         }
+
+        window.onload = abrirArquivo;
     </script>
 </head>
 <body>
-    <div id="offline-options" style="display: none; text-align: center; padding: 20px;">
-        <h2 id="offline-message">Sem internet? Você ainda pode acessar o conteúdo!</h2>
-        <p><strong>Conteúdo salvo:</strong> <span id="conteudoOffline"></span></p>
-        <button onclick="copiarParaClipboard()" style="font-size: 16px; padding: 10px;">Copiar Conteúdo</button>
-    </div>
+    <h2>Verificando conexão...</h2>
 </body>
 </html>
