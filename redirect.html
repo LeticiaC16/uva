@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abrindo Arquivo</title>
     <script>
-        function obterMatricula() {
+        async function obterMatricula() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get("matricula"); // Pega a matrícula da URL
+            return urlParams.get("matricula"); // Obtém a matrícula da URL
         }
 
-        function abrirArquivo() {
-            const matricula = obterMatricula();
+        async function abrirArquivo() {
+            const matricula = await obterMatricula();
             if (!matricula) {
                 document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
                 return;
@@ -24,27 +24,27 @@
                 // Se estiver online, abre o PNG
                 window.location.href = pngUrl;
             } else {
-                // Se estiver offline, tenta carregar o TXT
-                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
-                if (textoOffline) {
-                    document.body.innerHTML = `
-                        <h2>Você está offline</h2>
-                        <p><strong>Conteúdo salvo:</strong> ${textoOffline}</p>
-                    `;
-                } else {
-                    fetch(txtUrl)
-                        .then(response => response.text())
-                        .then(texto => {
+                // Se estiver offline, tenta carregar o TXT do cache
+                if ('caches' in window) {
+                    try {
+                        const cache = await caches.open("offline-cache-v7");
+                        const response = await cache.match(txtUrl);
+
+                        if (response) {
+                            const texto = await response.text();
                             document.body.innerHTML = `
                                 <h2>Você está offline</h2>
                                 <p><strong>Conteúdo salvo:</strong> ${texto}</p>
                             `;
-                            // Salva o conteúdo do TXT para uso offline futuro
-                            localStorage.setItem(`cartao_${matricula}_txt`, texto);
-                        })
-                        .catch(() => {
+                        } else {
                             document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
-                        });
+                        }
+                    } catch (error) {
+                        console.error("Erro ao buscar o TXT no cache:", error);
+                        document.body.innerHTML = "<h2>Erro ao carregar o arquivo offline.</h2>";
+                    }
+                } else {
+                    document.body.innerHTML = "<h2>Cache não suportado pelo navegador.</h2>";
                 }
             }
         }
@@ -56,3 +56,4 @@
     <h2>Verificando conexão...</h2>
 </body>
 </html>
+
