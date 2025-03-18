@@ -25,17 +25,27 @@
                 window.location.href = pngUrl;
             } else {
                 // Se estiver offline, tenta carregar o TXT
-                fetch(txtUrl)
-                    .then(response => response.text())
-                    .then(texto => {
-                        document.body.innerHTML = `
-                            <h2>Você está offline</h2>
-                            <p><strong>Conteúdo salvo:</strong> ${texto}</p>
-                        `;
-                    })
-                    .catch(() => {
-                        document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
-                    });
+                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
+                if (textoOffline) {
+                    document.body.innerHTML = `
+                        <h2>Você está offline</h2>
+                        <p><strong>Conteúdo salvo:</strong> ${textoOffline}</p>
+                    `;
+                } else {
+                    fetch(txtUrl)
+                        .then(response => response.text())
+                        .then(texto => {
+                            document.body.innerHTML = `
+                                <h2>Você está offline</h2>
+                                <p><strong>Conteúdo salvo:</strong> ${texto}</p>
+                            `;
+                            // Salva o conteúdo do TXT para uso offline futuro
+                            localStorage.setItem(`cartao_${matricula}_txt`, texto);
+                        })
+                        .catch(() => {
+                            document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
+                        });
+                }
             }
         }
 
