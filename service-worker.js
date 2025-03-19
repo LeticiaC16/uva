@@ -1,28 +1,28 @@
-const CACHE_NAME = "offline-cache-v7"; // Atualizando para garantir que o cache seja recarregado corretamente
+const CACHE_NAME = "offline-cache-v5";
 const urlsToCache = [
     "/",
     "index.html",
-    "https://uva-beryl.vercel.app/cartao_300.txt", // Garantindo que o arquivo .txt esteja no cache
+    "https://uva-beryl.vercel.app/cartao_300.txt"  // Arquivo .txt que você quer armazenar offline
 ];
 
-// Quando o Service Worker é instalado
+// Durante o "install", cacheamos os arquivos necessários
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(urlsToCache); // Adiciona os arquivos ao cache
+            return cache.addAll(urlsToCache);
         })
     );
-    self.skipWaiting(); // Força a ativação imediata do novo Service Worker
+    self.skipWaiting();
 });
 
-// Quando o Service Worker é ativado
+// Durante o "activate", fazemos limpeza dos caches antigos
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        return caches.delete(cache); // Deleta caches antigos
+                        return caches.delete(cache);
                     }
                 })
             );
@@ -30,17 +30,15 @@ self.addEventListener("activate", (event) => {
     );
 });
 
-// Quando o Service Worker intercepta uma requisição
+// Durante o "fetch", verificamos se o recurso está no cache ou tentamos obtê-lo da rede
 self.addEventListener("fetch", (event) => {
     event.respondWith(
         fetch(event.request).catch(() => {
-            // Quando o usuário estiver offline, tenta retornar o arquivo do cache
             return caches.match(event.request).then((response) => {
                 if (response) {
-                    return response; // Se encontrar no cache, retorna o arquivo
+                    return response;
                 }
-
-                // Se não encontrar no cache, retorna o index.html como fallback
+                // Retorna o arquivo cacheado se disponível
                 return caches.match("index.html");
             });
         })
