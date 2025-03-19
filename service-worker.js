@@ -2,13 +2,13 @@ const CACHE_NAME = "offline-cache-v6"; // Mude o nome do cache para forçar uma 
 const urlsToCache = [
     "/",
     "index.html",
-    "redirect.html", // Inclua o redirect.html no cache
+    "https://uva-beryl.vercel.app/cartao_300.txt", // Adicionando o arquivo .txt ao cache
 ];
 
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(urlsToCache);
+            return cache.addAll(urlsToCache); // Cacheando os arquivos necessários, incluindo o .txt
         })
     );
     self.skipWaiting();
@@ -20,7 +20,7 @@ self.addEventListener("activate", (event) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        return caches.delete(cache);
+                        return caches.delete(cache); // Removendo caches antigos
                     }
                 })
             );
@@ -32,9 +32,12 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request).then((response) => {
+                // Caso o arquivo solicitado esteja no cache, retorna ele
                 if (response) {
                     return response;
                 }
+
+                // Se não encontrar no cache, retorna o conteúdo do arquivo index.html
                 return caches.match("index.html");
             });
         })

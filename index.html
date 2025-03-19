@@ -35,19 +35,17 @@
                     const response = await fetch(txtUrl);
                     if (response.ok) {
                         const texto = await response.text();
-                        localStorage.setItem(`cartao_${matricula}_txt`, texto);
-                        console.log(`Texto salvo no localStorage: ${texto}`);  // Verifica o conteúdo salvo
+                        localStorage.setItem(`cartao_${matricula}_txt`, texto); // Salvando o arquivo no localStorage
+                        console.log(`TXT salvo no localStorage: ${texto}`);
                     } else {
                         console.error("Erro ao baixar o TXT.");
                     }
                 } catch (error) {
-                    console.error("Erro ao tentar salvar o conteúdo:", error);
+                    console.error("Erro ao armazenar o TXT:", error);
                 }
             } else {
-                // Se estiver offline, tenta carregar o TXT salvo no localStorage
+                // Se estiver offline, tenta carregar o TXT salvo no localStorage ou no cache
                 const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
-                console.log(`Texto recuperado do localStorage: ${textoOffline}`); // Verifica se o conteúdo foi recuperado corretamente
-
                 if (textoOffline) {
                     document.body.innerHTML = `
                         <h2>Você está offline</h2>
@@ -56,8 +54,8 @@
                     `;
                 } else {
                     document.body.innerHTML = `
-                        <h2>Arquivo offline não encontrado para a matrícula ${matricula}.</h2>
-                        <p>Por favor, verifique se você acessou o conteúdo online anteriormente.</p>
+                        <h2>Você está offline</h2>
+                        <p><strong>Arquivo offline não encontrado para a matrícula ${matricula}.</strong></p>
                     `;
                 }
             }
