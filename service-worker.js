@@ -1,9 +1,14 @@
-const CACHE_NAME = "offline-cache-v9";
+const CACHE_NAME = "offline-cache-v10";
+const urlsToCache = [
+    "/",
+    "index.html",
+    "redirect.html"
+];
 
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(["/", "index.html"]);
+            return cache.addAll(urlsToCache);
         })
     );
     self.skipWaiting();
@@ -25,47 +30,17 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-    let requestUrl = new URL(event.request.url);
-
-    // Verifica se a solicitação é para um arquivo TXT específico
-    if (requestUrl.pathname.includes("cartao_")) {
-        let matriculaMatch = requestUrl.pathname.match(/cartao_(\d+)\.txt/);
-        if (matriculaMatch) {
-            let matricula = matriculaMatch[1];
-            let txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
-
-            event.respondWith(
-                fetch(txtUrl)
-                    .then((response) => {
-                        let responseClone = response.clone();
-                        caches.open(CACHE_NAME).then((cache) => {
-                            cache.put(txtUrl, responseClone);
-                        });
-                        return response;
-                    })
-                    .catch(() => {
-                        return caches.match(txtUrl).then((cachedResponse) => {
-                            if (cachedResponse) {
-                                return cachedResponse;
-                            } else {
-                                return new Response("Arquivo offline não encontrado!", {
-                                    status: 404,
-                                    statusText: "Not Found",
-                                });
-                            }
-                        });
-                    })
-            );
-            return;
-        }
+    if (event.request.url.endsWith(".txt")) {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                return caches.match(event.request);
+            })
+        );
+    } else {
+        event.respondWith(
+            fetch(event.request).catch(() => {
+                return caches.match("index.html");
+            })
+        );
     }
-
-    // Para outras requisições, segue a estratégia padrão de cache
-    event.respondWith(
-        fetch(event.request).catch(() => {
-            return caches.match(event.request).then((response) => {
-                return response || caches.match("index.html");
-            });
-        })
-    );
 });

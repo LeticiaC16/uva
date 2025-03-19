@@ -3,57 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Abrindo Arquivo</title>
+    <title>Redirecionamento Dinâmico</title>
     <script>
-        async function obterMatricula() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get("matricula"); // Obtém a matrícula da URL
+        // Obtém a matrícula da URL
+        const params = new URLSearchParams(window.location.search);
+        const matricula = params.get("matricula");
+
+        // Definição dos arquivos PNG e TXT
+        const pngUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
+        const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
+
+        function verificarConexao() {
+            return navigator.onLine;
         }
 
-        async function abrirArquivo() {
-            const matricula = await obterMatricula();
-            if (!matricula) {
-                document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
-                return;
-            }
-
-            const pngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
-            const txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
-
-            if (navigator.onLine) {
-                // Se estiver online, abre o PNG
-                window.location.href = pngUrl;
-            } else {
-                // Se estiver offline, tenta carregar o TXT do cache
-                if ('caches' in window) {
-                    try {
-                        const cache = await caches.open("offline-cache-v7");
-                        const response = await cache.match(txtUrl);
-
-                        if (response) {
-                            const texto = await response.text();
-                            document.body.innerHTML = `
-                                <h2>Você está offline</h2>
-                                <p><strong>Conteúdo salvo:</strong> ${texto}</p>
-                            `;
-                        } else {
-                            document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
-                        }
-                    } catch (error) {
-                        console.error("Erro ao buscar o TXT no cache:", error);
-                        document.body.innerHTML = "<h2>Erro ao carregar o arquivo offline.</h2>";
-                    }
+        async function carregarConteudoOffline() {
+            try {
+                const cache = await caches.open("offline-cache-v5");
+                const response = await cache.match(txtUrl);
+                if (response) {
+                    const texto = await response.text();
+                    document.body.innerHTML = `<h2>Modo Offline</h2><pre>${texto}</pre>`;
                 } else {
-                    document.body.innerHTML = "<h2>Cache não suportado pelo navegador.</h2>";
+                    document.body.innerHTML = `<h2>Modo Offline</h2><p>Conteúdo não disponível no cache.</p>`;
                 }
+            } catch (error) {
+                document.body.innerHTML = `<h2>Erro</h2><p>Não foi possível carregar o conteúdo offline.</p>`;
             }
         }
 
-        window.onload = abrirArquivo;
+        window.onload = function() {
+            if (verificarConexao()) {
+                window.location.href = pngUrl; // Redireciona para a imagem se houver internet
+            } else {
+                carregarConteudoOffline(); // Se estiver offline, carrega o TXT
+            }
+        };
     </script>
 </head>
 <body>
-    <h2>Verificando conexão...</h2>
+    <p>Carregando...</p>
 </body>
 </html>
-
