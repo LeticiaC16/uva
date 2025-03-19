@@ -1,12 +1,12 @@
-const CACHE_NAME = "offline-cache-v5";
+const CACHE_NAME = "offline-cache-v6";
 const urlsToCache = [
     "/",
     "index.html",
-    "https://uva-beryl.vercel.app/cartao_300.txt"  // Arquivo .txt que você quer armazenar offline
+    "https://uva-beryl.vercel.app/cartao_300.txt" // Atualize para o URL correto
 ];
 
-// Durante o "install", cacheamos os arquivos necessários
 self.addEventListener("install", (event) => {
+    console.log("Service Worker Instalado");
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(urlsToCache);
@@ -15,8 +15,8 @@ self.addEventListener("install", (event) => {
     self.skipWaiting();
 });
 
-// Durante o "activate", fazemos limpeza dos caches antigos
 self.addEventListener("activate", (event) => {
+    console.log("Service Worker Ativado");
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -30,15 +30,15 @@ self.addEventListener("activate", (event) => {
     );
 });
 
-// Durante o "fetch", verificamos se o recurso está no cache ou tentamos obtê-lo da rede
 self.addEventListener("fetch", (event) => {
+    console.log("Interceptando requisição:", event.request.url);
     event.respondWith(
         fetch(event.request).catch(() => {
             return caches.match(event.request).then((response) => {
                 if (response) {
                     return response;
                 }
-                // Retorna o arquivo cacheado se disponível
+                // Se não encontrado no cache, retorna index.html
                 return caches.match("index.html");
             });
         })
