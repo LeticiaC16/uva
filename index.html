@@ -35,8 +35,9 @@
                     const response = await fetch(txtUrl);
                     if (response.ok) {
                         const texto = await response.text();
+                        console.log(`Tentando salvar TXT para a matrícula ${matricula}...`);
                         localStorage.setItem(`cartao_${matricula}_txt`, texto);
-                        console.log(`TXT salvo no localStorage: ${texto}`); // Log para ver se está salvando
+                        console.log(`TXT salvo no localStorage para a matrícula ${matricula}`);
                     } else {
                         console.error("Erro ao baixar o TXT.");
                     }
@@ -70,3 +71,4 @@
     <h2>Verificando conexão...</h2>
 </body>
 </html>
+
