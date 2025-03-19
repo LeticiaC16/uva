@@ -24,28 +24,37 @@
                 // Se estiver online, abre o PNG
                 window.location.href = pngUrl;
 
-                // Carrega o conteúdo do TXT e armazena no localStorage
+                // Baixa e salva o TXT para uso offline
                 fetch(txtUrl)
                     .then(response => response.text())
                     .then(texto => {
-                        // Salva o conteúdo do TXT para uso offline futuro
                         localStorage.setItem(`cartao_${matricula}_txt`, texto);
                     })
-                    .catch((error) => {
+                    .catch(error => {
                         console.error("Erro ao tentar acessar o arquivo TXT online:", error);
                     });
+
             } else {
-                // Se estiver offline, tenta carregar o TXT do localStorage
+                // Se estiver offline, exibe o TXT salvo
                 const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
                 if (textoOffline) {
                     document.body.innerHTML = `
                         <h2>Você está offline</h2>
-                        <p><strong>Conteúdo salvo:</strong> ${textoOffline}</p>
+                        <p><strong>Conteúdo salvo:</strong></p>
+                        <pre>${textoOffline}</pre>
+                        <button onclick="copiarTexto()">Copiar Conteúdo</button>
                     `;
                 } else {
                     document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
                 }
             }
+        }
+
+        function copiarTexto() {
+            const texto = localStorage.getItem(`cartao_${obterMatricula()}_txt`);
+            navigator.clipboard.writeText(texto).then(() => {
+                alert("Conteúdo copiado!");
+            });
         }
 
         window.onload = abrirArquivo;
