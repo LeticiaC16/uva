@@ -1,4 +1,4 @@
-const CACHE_NAME = "offline-cache-v6"; // Atualizando para garantir que o cache seja recarregado corretamente
+const CACHE_NAME = "offline-cache-v7"; // Atualizando para garantir que o cache seja recarregado corretamente
 const urlsToCache = [
     "/",
     "index.html",
