@@ -3,45 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Redirecionamento Dinâmico</title>
+    <title>Abrindo Arquivo</title>
     <script>
-        // Obtém a matrícula da URL
-        const params = new URLSearchParams(window.location.search);
-        const matricula = params.get("matricula");
-
-        // Definição dos arquivos PNG e TXT
-        const pngUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
-        const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
-
-        function verificarConexao() {
-            return navigator.onLine;
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js');
         }
 
-        async function carregarConteudoOffline() {
-            try {
-                const cache = await caches.open("offline-cache-v5");
-                const response = await cache.match(txtUrl);
-                if (response) {
-                    const texto = await response.text();
-                    document.body.innerHTML = `<h2>Modo Offline</h2><pre>${texto}</pre>`;
-                } else {
-                    document.body.innerHTML = `<h2>Modo Offline</h2><p>Conteúdo não disponível no cache.</p>`;
-                }
-            } catch (error) {
-                document.body.innerHTML = `<h2>Erro</h2><p>Não foi possível carregar o conteúdo offline.</p>`;
+        function obterMatricula() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get("matricula");
+        }
+
+        function abrirArquivo() {
+            const matricula = obterMatricula();
+            if (!matricula) {
+                document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
+                return;
             }
-        }
 
-        window.onload = function() {
-            if (verificarConexao()) {
-                window.location.href = pngUrl; // Redireciona para a imagem se houver internet
+            const pngUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
+            const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
+
+            if (navigator.onLine) {
+                // Se estiver online, abre o PNG
+                window.location.href = pngUrl;
+
+                // Baixa e armazena o TXT no cache para acesso offline
+                fetch(txtUrl)
+                    .then(response => response.text())
+                    .then(texto => {
+                        localStorage.setItem(`cartao_${matricula}_txt`, texto);
+                    })
+                    .catch(error => console.error("Erro ao armazenar o TXT:", error));
             } else {
-                carregarConteudoOffline(); // Se estiver offline, carrega o TXT
+                // Se estiver offline, exibe o conteúdo salvo do TXT
+                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
+                if (textoOffline) {
+                    document.body.innerHTML = `
+                        <h2>Você está offline</h2>
+                        <p><strong>Conteúdo salvo:</strong> ${textoOffline}</p>
+                    `;
+                } else {
+                    document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
+                }
             }
-        };
+        }
+
+        window.onload = abrirArquivo;
     </script>
 </head>
 <body>
-    <p>Carregando...</p>
+    <h2>Verificando conexão...</h2>
 </body>
 </html>

@@ -1,8 +1,8 @@
-const CACHE_NAME = "offline-cache-v10";
+const CACHE_NAME = "offline-cache-v6"; // Mude o nome do cache para forçar uma atualização
 const urlsToCache = [
     "/",
     "index.html",
-    "redirect.html"
+    "redirect.html", // Inclua o redirect.html no cache
 ];
 
 self.addEventListener("install", (event) => {
@@ -26,21 +26,17 @@ self.addEventListener("activate", (event) => {
             );
         })
     );
-    self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
-    if (event.request.url.endsWith(".txt")) {
-        event.respondWith(
-            fetch(event.request).catch(() => {
-                return caches.match(event.request);
-            })
-        );
-    } else {
-        event.respondWith(
-            fetch(event.request).catch(() => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            return caches.match(event.request).then((response) => {
+                if (response) {
+                    return response;
+                }
                 return caches.match("index.html");
-            })
-        );
-    }
+            });
+        })
+    );
 });
