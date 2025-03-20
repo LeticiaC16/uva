@@ -1,4 +1,4 @@
-const CACHE_NAME = "offline-cache-v6"; // Atualizando para garantir que o cache seja recarregado corretamente
+const CACHE_NAME = "offline-cache-v7"; // Atualizando para garantir que o cache seja recarregado corretamente
 const urlsToCache = [
     "/",
     "index.html",
@@ -26,6 +26,23 @@ self.addEventListener("activate", (event) => {
                     }
                 })
             );
+        })
+    );
+});
+
+// Quando o Service Worker intercepta uma requisição
+self.addEventListener("fetch", (event) => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Quando o usuário estiver offline, tenta retornar o arquivo do cache
+            return caches.match(event.request).then((response) => {
+                if (response) {
+                    return response; // Se encontrar no cache, retorna o arquivo
+                }
+
+                // Se não encontrar no cache, retorna o index.html como fallback
+                return caches.match("index.html");
+            });
         })
     );
 });
