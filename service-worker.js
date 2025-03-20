@@ -1,8 +1,8 @@
-const CACHE_NAME = "offline-cache-v7"; // Atualizando para garantir que o cache seja recarregado corretamente
+const CACHE_NAME = "offline-cache-v6";
 const urlsToCache = [
     "/",
     "index.html",
-    "https://uva-beryl.vercel.app/cartao_300.txt", // Garantindo que o arquivo .txt esteja no cache
+    "https://uva-beryl.vercel.app/cartao_300.txt", // Garanta que o arquivo .txt esteja no cache
 ];
 
 // Quando o Service Worker é instalado
@@ -12,7 +12,7 @@ self.addEventListener("install", (event) => {
             return cache.addAll(urlsToCache); // Adiciona os arquivos ao cache
         })
     );
-    self.skipWaiting(); // Força a ativação imediata do novo Service Worker
+    self.skipWaiting();
 });
 
 // Quando o Service Worker é ativado
@@ -29,6 +29,23 @@ self.addEventListener("activate", (event) => {
         })
     );
 });
+
+// Quando o Service Worker intercepta uma requisição
+self.addEventListener("fetch", (event) => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Se o arquivo não estiver online, tenta retornar do cache
+            return caches.match(event.request).then((response) => {
+                if (response) {
+                    return response; // Se encontrar no cache, retorna o arquivo
+                }
+                // Caso contrário, retorna index.html como fallback
+                return caches.match("index.html");
+            });
+        })
+    );
+});
+
 
 // Quando o Service Worker intercepta uma requisição
 self.addEventListener("fetch", (event) => {
