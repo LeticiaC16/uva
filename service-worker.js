@@ -1,46 +1,82 @@
-async function abrirArquivo() {
-    const matricula = obterMatricula();
-    if (!matricula) {
-        document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
-        return;
-    }
+const CACHE_NAME = "offline-cache-v6";
+const urlsToCache = [
+    "/",
+    "index.html",
+    "https://uva-beryl.vercel.app/cartao_300.txt", // Garanta que o arquivo .txt esteja no cache
+];
 
-    const pdfUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
-    const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
+// Quando o Service Worker é instalado
+self.addEventListener("install", (event) => {
+    event.waitUntil(
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(urlsToCache); // Adiciona os arquivos ao cache
+        })
+    );
+    self.skipWaiting();
+});
 
-    if (navigator.onLine) {
-        // Redireciona para o PDF
-        window.location.href = pdfUrl;
+// Quando o Service Worker é ativado
+self.addEventListener("activate", (event) => {
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((cache) => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache); // Deleta caches antigos
+                    }
+                })
+            );
+        })
+    );
+});
 
-        // Baixa e armazena o TXT no localStorage para acesso offline
-        try {
-            const response = await fetch(txtUrl);
-            if (response.ok) {
-                const texto = await response.text();
-                localStorage.setItem(`cartao_${matricula}_txt`, texto); // Armazenando no localStorage
-                console.log(`TXT salvo no localStorage para a matrícula ${matricula}`);
-            } else {
-                console.error("Erro ao baixar o TXT.");
-            }
-        } catch (error) {
-            console.error("Erro ao armazenar o TXT:", error);
-        }
-    } else {
-        // Se estiver offline, tenta carregar o arquivo .txt do localStorage
-        const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
-        if (textoOffline) {
-            document.body.innerHTML = `
-                <h2>Você está offline</h2>
-                <p><strong>Conteúdo salvo para a matrícula ${matricula}:</strong></p>
-                <pre>${textoOffline}</pre>
-            `;
-        } else {
-            document.body.innerHTML = `
-                <h2>Você está offline</h2>
-                <p><strong>Arquivo offline não encontrado para a matrícula ${matricula}.</strong></p>
-            `;
-        }
-    }
-}
+// Quando o Service Worker intercepta uma requisição
+self.addEventListener("fetch", (event) => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Se o arquivo não estiver online, tenta retornar do cache
+            return caches.match(event.request).then((response) => {
+                if (response) {
+                    return response; // Se encontrar no cache, retorna o arquivo
+                }
+                // Caso contrário, retorna index.html como fallback
+                return caches.match("index.html");
+            });
+        })
+    );
+});
 
-window.onload = abrirArquivo;
+
+// Quando o Service Worker intercepta uma requisição
+self.addEventListener("fetch", (event) => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Quando o usuário estiver offline, tenta retornar o arquivo do cache
+            return caches.match(event.request).then((response) => {
+                if (response) {
+                    return response; // Se encontrar no cache, retorna o arquivo
+                }
+
+                // Se não encontrar no cache, retorna o index.html como fallback
+                return caches.match("index.html");
+            });
+        })
+    );
+});
+
+// Quando o Service Worker intercepta uma requisição
+self.addEventListener("fetch", (event) => {
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Quando o usuário estiver offline, tenta retornar o arquivo do cache
+            return caches.match(event.request).then((response) => {
+                if (response) {
+                    return response; // Se encontrar no cache, retorna o arquivo
+                }
+
+                // Se não encontrar no cache, retorna o index.html como fallback
+                return caches.match("index.html");
+            });
+        })
+    );
+});
