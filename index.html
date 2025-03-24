@@ -30,7 +30,7 @@
                 // Redireciona para o PDF
                 window.location.href = pdfUrl;
 
-                // Baixa e armazena o TXT para acesso offline
+                // Baixa e armazena o TXT para acesso offline no localStorage
                 try {
                     const response = await fetch(txtUrl);
                     if (response.ok) {
