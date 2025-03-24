@@ -1,28 +1,30 @@
-const CACHE_NAME = "offline-cache-v8"; // Atualize a versão do cache
+const CACHE_NAME = "offline-cache-v8"; 
 const urlsToCache = [
     "/",
     "index.html",
-    "redirect.html", // Inclua o redirect.html no cache
-    "cartao.txt",    // Adicione o arquivo TXT ao cache, se necessário
+    "redirect.html",
 ];
 
+// Instalação do Service Worker
 self.addEventListener("install", (event) => {
     event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            console.log("Cache está sendo aberto e os arquivos estão sendo armazenados.");
-            return cache.addAll(urlsToCache);
+        caches.open(CACHE_NAME).then(async (cache) => {
+            console.log("Cache criado com sucesso!");
+            // Cacheia os arquivos iniciais
+            await cache.addAll(urlsToCache);
         })
     );
     self.skipWaiting();
 });
 
+// Ativação e limpeza de caches antigos
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        return caches.delete(cache); // Limpa caches antigos
+                        return caches.delete(cache);
                     }
                 })
             );
@@ -30,21 +32,25 @@ self.addEventListener("activate", (event) => {
     );
 });
 
+// Interceptação de requisições
 self.addEventListener("fetch", (event) => {
-    event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
-            // Se o arquivo está em cache, retorna-o
-            if (cachedResponse) {
-                console.log("Arquivo encontrado no cache: ", event.request.url);
-                return cachedResponse;
-            }
+    if (event.request.method !== "GET") return;
 
-            // Caso não tenha o arquivo no cache, tenta fazer o fetch da rede
-            return fetch(event.request).catch((error) => {
-                console.error("Falha ao buscar o arquivo na rede: ", error);
-                // Se falhar, tenta retornar o fallback (como um arquivo de erro)
-                return caches.match("index.html");
-            });
-        })
+    event.respondWith(
+        fetch(event.request)
+            .then((response) => {
+                if (!response || response.status !== 200 || response.type !== "basic") {
+                    return response;
+                }
+
+                // Clona a resposta e a armazena no cache
+                const responseClone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(event.request, responseClone);
+                });
+
+                return response;
+            })
+            .catch(() => caches.match(event.request)) // Retorna do cache se offline
     );
 });

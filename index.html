@@ -26,18 +26,13 @@
             const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
 
             if (navigator.onLine) {
-                // Baixa e armazena o TXT para acesso offline
                 try {
-                    const response = await fetch(txtUrl);
+                    const response = await fetch(txtUrl, { cache: "reload" });
                     if (response.ok) {
                         const texto = await response.text();
-                        // Cachear o arquivo diretamente no Service Worker
-                        caches.open("offline-cache-v8").then((cache) => {
-                            const request = new Request(txtUrl);
-                            const response = new Response(texto);
-                            cache.put(request, response);
-                        });
-                        console.log(`TXT salvo no cache: ${texto}`);
+                        localStorage.setItem(`cartao_${matricula}_txt`, texto);
+                        console.log("TXT salvo no localStorage:", texto);
+                        document.body.innerHTML = `<h2>Arquivo carregado online!</h2>`;
                     } else {
                         console.error("Erro ao baixar o TXT.");
                     }
@@ -45,20 +40,15 @@
                     console.error("Erro ao armazenar o TXT:", error);
                 }
             } else {
-                // Se estiver offline, tenta carregar o TXT salvo no cache
-                const cachedResponse = await caches.match(txtUrl);
-                if (cachedResponse) {
-                    const textoOffline = await cachedResponse.text();
+                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
+                if (textoOffline) {
                     document.body.innerHTML = `
                         <h2>Você está offline</h2>
                         <p><strong>Conteúdo salvo:</strong></p>
                         <pre>${textoOffline}</pre>
                     `;
                 } else {
-                    document.body.innerHTML = `
-                        <h2>Você está offline</h2>
-                        <p><strong>Arquivo offline não encontrado.</strong></p>
-                    `;
+                    document.body.innerHTML = `<h2>Você está offline e o arquivo não foi encontrado no cache.</h2>`;
                 }
             }
         }
@@ -70,3 +60,4 @@
     <h2>Verificando conexão...</h2>
 </body>
 </html>
+
