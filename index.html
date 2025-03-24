@@ -5,53 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abrindo Arquivo</title>
     <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(() => console.log("Service Worker registrado"))
-                .catch(error => console.error("Erro ao registrar Service Worker:", error));
-        }
-
         function obterMatricula() {
             const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get("matricula");
+            return urlParams.get("matricula"); // Pega a matrícula da URL
         }
 
-        async function abrirArquivo() {
+        function abrirArquivo() {
             const matricula = obterMatricula();
             if (!matricula) {
                 document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
                 return;
             }
 
-            const pdfUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
-            const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
+            const pngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
+            const txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
 
             if (navigator.onLine) {
-                // Redireciona para o PDF
-                window.location.href = pdfUrl;
+                // Se estiver online, abre o PNG
+                window.location.href = pngUrl;
+
+                // Baixa e salva o TXT para uso offline
+                fetch(txtUrl)
+                    .then(response => response.text())
+                    .then(texto => {
+                        localStorage.setItem(`cartao_${matricula}_txt`, texto);
+                    })
+                    .catch(error => {
+                        console.error("Erro ao tentar acessar o arquivo TXT online:", error);
+                    });
+
             } else {
-                // Se estiver offline, tenta carregar o arquivo .txt do cache
-                try {
-                    const cache = await caches.open(CACHE_NAME);
-                    const response = await cache.match(txtUrl);
-                    if (response) {
-                        const textoOffline = await response.text();
-                        document.body.innerHTML = `
-                            <h2>Você está offline</h2>
-                            <p><strong>Conteúdo salvo para a matrícula ${matricula}:</strong></p>
-                            <pre>${textoOffline}</pre>
-                        `;
-                    } else {
-                        document.body.innerHTML = `
-                            <h2>Você está offline</h2>
-                            <p><strong>Arquivo offline não encontrado para a matrícula ${matricula}.</strong></p>
-                        `;
-                    }
-                } catch (error) {
-                    console.error("Erro ao acessar o cache:", error);
-                    document.body.innerHTML = "<h2>Erro ao acessar conteúdo offline.</h2>";
+                // Se estiver offline, exibe o TXT salvo
+                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
+                if (textoOffline) {
+                    document.body.innerHTML = `
+                        <h2>Você está offline</h2>
+                        <p><strong>Conteúdo salvo:</strong></p>
+                        <pre>${textoOffline}</pre>
+                        <button onclick="copiarTexto()">Copiar Conteúdo</button>
+                    `;
+                } else {
+                    document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
                 }
             }
+        }
+
+        function copiarTexto() {
+            const texto = localStorage.getItem(`cartao_${obterMatricula()}_txt`);
+            navigator.clipboard.writeText(texto).then(() => {
+                alert("Conteúdo copiado!");
+            });
         }
 
         window.onload = abrirArquivo;
