@@ -1,13 +1,16 @@
-const CACHE_NAME = "offline-cache-v7"; // Atualize para forçar uma nova versão do cache
+const CACHE_NAME = "offline-cache-v8"; // Atualize a versão do cache
+const urlsToCache = [
+    "/",
+    "index.html",
+    "redirect.html", // Inclua o redirect.html no cache
+    "cartao.txt",    // Adicione o arquivo TXT ao cache, se necessário
+];
 
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll([
-                "/",
-                "index.html",
-                "redirect.html", // Inclua o redirect.html no cache
-            ]);
+            console.log("Cache está sendo aberto e os arquivos estão sendo armazenados.");
+            return cache.addAll(urlsToCache);
         })
     );
     self.skipWaiting();
@@ -19,7 +22,7 @@ self.addEventListener("activate", (event) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
-                        return caches.delete(cache);
+                        return caches.delete(cache); // Limpa caches antigos
                     }
                 })
             );
@@ -29,23 +32,18 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
     event.respondWith(
-        caches.match(event.request).then((response) => {
-            if (response) {
-                return response; // Serve from cache if available
+        caches.match(event.request).then((cachedResponse) => {
+            // Se o arquivo está em cache, retorna-o
+            if (cachedResponse) {
+                console.log("Arquivo encontrado no cache: ", event.request.url);
+                return cachedResponse;
             }
 
-            // Else fetch and cache the file
-            return fetch(event.request).then((networkResponse) => {
-                // Cache only the relevant files (e.g., txt, png)
-                if (
-                    event.request.url.endsWith(".txt") ||
-                    event.request.url.endsWith(".png")
-                ) {
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, networkResponse.clone());
-                    });
-                }
-                return networkResponse;
+            // Caso não tenha o arquivo no cache, tenta fazer o fetch da rede
+            return fetch(event.request).catch((error) => {
+                console.error("Falha ao buscar o arquivo na rede: ", error);
+                // Se falhar, tenta retornar o fallback (como um arquivo de erro)
+                return caches.match("index.html");
             });
         })
     );

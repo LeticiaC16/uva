@@ -32,7 +32,7 @@
                     if (response.ok) {
                         const texto = await response.text();
                         // Cachear o arquivo diretamente no Service Worker
-                        caches.open("offline-cache-v7").then((cache) => {
+                        caches.open("offline-cache-v8").then((cache) => {
                             const request = new Request(txtUrl);
                             const response = new Response(texto);
                             cache.put(request, response);
