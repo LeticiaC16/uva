@@ -1,22 +1,31 @@
-const CACHE_NAME = "offline-cache-v7";
+const CACHE_NAME = "offline-cache-v8";
+const urlsToCache = [
+    "/",
+    "index.html",
+    "https://uva-beryl.vercel.app/cartao_300.txt", // Garanta que o arquivo .txt esteja no cache
+];
 
-// Quando o Service Worker é instalado, só armazenamos o index.html
+// Quando o Service Worker é instalado
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(["/index.html"]);
+            console.log("Cache aberto para instalação.");
+            return cache.addAll(urlsToCache).then(() => {
+                console.log("Arquivos adicionados ao cache.");
+            });
         })
     );
     self.skipWaiting();
 });
 
-// Ativação: remove caches antigos
+// Quando o Service Worker é ativado
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cache) => {
                     if (cache !== CACHE_NAME) {
+                        console.log(`Deletando cache antigo: ${cache}`);
                         return caches.delete(cache);
                     }
                 })
@@ -26,36 +35,21 @@ self.addEventListener("activate", (event) => {
     self.clients.claim();
 });
 
-// Intercepta todas as requisições
+// Quando o Service Worker intercepta uma requisição
 self.addEventListener("fetch", (event) => {
-    const requestUrl = new URL(event.request.url);
-
-    // Se for um arquivo .txt, tenta armazená-lo no cache para acesso offline
-    if (requestUrl.pathname.endsWith(".txt")) {
-        event.respondWith(
-            caches.open(CACHE_NAME).then(async (cache) => {
-                try {
-                    const response = await fetch(event.request);
-                    if (response.ok) {
-                        cache.put(event.request, response.clone()); // Salva no cache
-                    }
-                    return response;
-                } catch (error) {
-                    return cache.match(event.request) || new Response("Arquivo offline não encontrado.", {
-                        status: 404,
-                        statusText: "Not Found"
-                    });
-                }
-            })
-        );
-        return;
-    }
-
-    // Para outros arquivos, primeiro tenta buscar online, depois recorre ao cache
     event.respondWith(
         fetch(event.request).catch(() => {
+            // Quando o usuário estiver offline, tenta retornar o arquivo do cache
+            console.log(`Tentando carregar do cache: ${event.request.url}`);
             return caches.match(event.request).then((response) => {
-                return response || caches.match("/index.html");
+                if (response) {
+                    console.log(`Arquivo encontrado no cache: ${event.request.url}`);
+                    return response; // Se encontrar no cache, retorna o arquivo
+                }
+
+                // Se não encontrar no cache, retorna o index.html como fallback
+                console.log("Arquivo não encontrado no cache, retornando index.html.");
+                return caches.match("index.html");
             });
         })
     );

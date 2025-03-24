@@ -5,56 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abrindo Arquivo</title>
     <script>
-        function obterMatricula() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get("matricula"); // Pega a matrícula da URL
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(() => console.log("Service Worker registrado"))
+                .catch(error => console.error("Erro ao registrar Service Worker:", error));
         }
 
-        function abrirArquivo() {
+        function obterMatricula() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get("matricula");
+        }
+
+        async function abrirArquivo() {
             const matricula = obterMatricula();
             if (!matricula) {
                 document.body.innerHTML = "<h2>Matrícula não informada!</h2>";
                 return;
             }
 
-            const pngUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.png`;
-            const txtUrl = `https://raw.githubusercontent.com/LeticiaC16/uva/main/cartao_${matricula}.txt`;
+            const pdfUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
+            const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
 
             if (navigator.onLine) {
-                // Se estiver online, abre o PNG
-                window.location.href = pngUrl;
+                // Redireciona para o PDF
+                window.location.href = pdfUrl;
 
-                // Baixa e salva o TXT para uso offline
-                fetch(txtUrl)
-                    .then(response => response.text())
-                    .then(texto => {
+                // Baixa e armazena o TXT para acesso offline
+                try {
+                    const response = await fetch(txtUrl);
+                    if (response.ok) {
+                        const texto = await response.text();
                         localStorage.setItem(`cartao_${matricula}_txt`, texto);
-                    })
-                    .catch(error => {
-                        console.error("Erro ao tentar acessar o arquivo TXT online:", error);
-                    });
-
+                        console.log(`TXT salvo no localStorage: ${texto}`);
+                    } else {
+                        console.error("Erro ao baixar o TXT.");
+                    }
+                } catch (error) {
+                    console.error("Erro ao armazenar o TXT:", error);
+                }
             } else {
-                // Se estiver offline, exibe o TXT salvo
+                // Se estiver offline, tenta carregar o TXT salvo no localStorage
                 const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
                 if (textoOffline) {
                     document.body.innerHTML = `
                         <h2>Você está offline</h2>
-                        <p><strong>Conteúdo salvo:</strong></p>
+                        <p><strong>Conteúdo salvo para a matrícula ${matricula}:</strong></p>
                         <pre>${textoOffline}</pre>
-                        <button onclick="copiarTexto()">Copiar Conteúdo</button>
                     `;
                 } else {
-                    document.body.innerHTML = "<h2>Arquivo offline não encontrado!</h2>";
+                    document.body.innerHTML = `
+                        <h2>Você está offline</h2>
+                        <p><strong>Arquivo offline não encontrado para a matrícula ${matricula}.</strong></p>
+                        <p>Por favor, tente novamente quando estiver online.</p>
+                    `;
                 }
             }
-        }
-
-        function copiarTexto() {
-            const texto = localStorage.getItem(`cartao_${obterMatricula()}_txt`);
-            navigator.clipboard.writeText(texto).then(() => {
-                alert("Conteúdo copiado!");
-            });
         }
 
         window.onload = abrirArquivo;
