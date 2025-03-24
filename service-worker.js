@@ -1,23 +1,21 @@
-const CACHE_NAME = "offline-cache-v8"; 
+const CACHE_NAME = "offline-cache-v9"; 
+
 const urlsToCache = [
     "/",
     "index.html",
     "redirect.html",
 ];
 
-// Instalação do Service Worker
 self.addEventListener("install", (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then(async (cache) => {
             console.log("Cache criado com sucesso!");
-            // Cacheia os arquivos iniciais
             await cache.addAll(urlsToCache);
         })
     );
     self.skipWaiting();
 });
 
-// Ativação e limpeza de caches antigos
 self.addEventListener("activate", (event) => {
     event.waitUntil(
         caches.keys().then((cacheNames) => {
@@ -30,27 +28,34 @@ self.addEventListener("activate", (event) => {
             );
         })
     );
+    self.clients.claim();
 });
 
-// Interceptação de requisições
 self.addEventListener("fetch", (event) => {
     if (event.request.method !== "GET") return;
 
     event.respondWith(
-        fetch(event.request)
-            .then((response) => {
-                if (!response || response.status !== 200 || response.type !== "basic") {
-                    return response;
+        caches.match(event.request)
+            .then((cachedResponse) => {
+                if (cachedResponse) {
+                    return cachedResponse;
                 }
-
-                // Clona a resposta e a armazena no cache
-                const responseClone = response.clone();
-                caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(event.request, responseClone);
-                });
-
-                return response;
+                return fetch(event.request)
+                    .then((networkResponse) => {
+                        if (!networkResponse || networkResponse.status !== 200) {
+                            console.warn("Erro ao buscar da rede:", event.request.url);
+                            return networkResponse;
+                        }
+                        const responseClone = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, responseClone);
+                        });
+                        return networkResponse;
+                    })
+                    .catch(() => {
+                        return new Response("Erro: Arquivo não encontrado offline", { status: 404 });
+                    });
             })
-            .catch(() => caches.match(event.request)) // Retorna do cache se offline
     );
 });
+
