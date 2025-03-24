@@ -23,20 +23,21 @@
                 return;
             }
 
-            const pdfUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.png`;
             const txtUrl = `https://uva-beryl.vercel.app/cartao_${matricula}.txt`;
 
             if (navigator.onLine) {
-                // Redireciona para o PDF
-                window.location.href = pdfUrl;
-
-                // Baixa e armazena o TXT para acesso offline no localStorage
+                // Baixa e armazena o TXT para acesso offline
                 try {
                     const response = await fetch(txtUrl);
                     if (response.ok) {
                         const texto = await response.text();
-                        localStorage.setItem(`cartao_${matricula}_txt`, texto);
-                        console.log(`TXT salvo no localStorage: ${texto}`);
+                        // Cachear o arquivo diretamente no Service Worker
+                        caches.open("offline-cache-v7").then((cache) => {
+                            const request = new Request(txtUrl);
+                            const response = new Response(texto);
+                            cache.put(request, response);
+                        });
+                        console.log(`TXT salvo no cache: ${texto}`);
                     } else {
                         console.error("Erro ao baixar o TXT.");
                     }
@@ -44,19 +45,19 @@
                     console.error("Erro ao armazenar o TXT:", error);
                 }
             } else {
-                // Se estiver offline, tenta carregar o TXT salvo no localStorage
-                const textoOffline = localStorage.getItem(`cartao_${matricula}_txt`);
-                if (textoOffline) {
+                // Se estiver offline, tenta carregar o TXT salvo no cache
+                const cachedResponse = await caches.match(txtUrl);
+                if (cachedResponse) {
+                    const textoOffline = await cachedResponse.text();
                     document.body.innerHTML = `
                         <h2>Você está offline</h2>
-                        <p><strong>Conteúdo salvo para a matrícula ${matricula}:</strong></p>
+                        <p><strong>Conteúdo salvo:</strong></p>
                         <pre>${textoOffline}</pre>
                     `;
                 } else {
                     document.body.innerHTML = `
                         <h2>Você está offline</h2>
-                        <p><strong>Arquivo offline não encontrado para a matrícula ${matricula}.</strong></p>
-                        <p>Por favor, tente novamente quando estiver online.</p>
+                        <p><strong>Arquivo offline não encontrado.</strong></p>
                     `;
                 }
             }

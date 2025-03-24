@@ -6,7 +6,7 @@ self.addEventListener("install", (event) => {
             return cache.addAll([
                 "/",
                 "index.html",
-                "redirect.html",
+                "redirect.html", // Inclua o redirect.html no cache
             ]);
         })
     );
@@ -30,23 +30,23 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
     event.respondWith(
         caches.match(event.request).then((response) => {
-            return (
-                response ||
-                fetch(event.request)
-                    .then((networkResponse) => {
-                        return caches.open(CACHE_NAME).then((cache) => {
-                            // Armazena dinamicamente arquivos TXT e PNG no cache
-                            if (
-                                event.request.url.includes(".txt") ||
-                                event.request.url.includes(".png")
-                            ) {
-                                cache.put(event.request, networkResponse.clone());
-                            }
-                            return networkResponse;
-                        });
-                    })
-                    .catch(() => caches.match("index.html"))
-            );
+            if (response) {
+                return response; // Serve from cache if available
+            }
+
+            // Else fetch and cache the file
+            return fetch(event.request).then((networkResponse) => {
+                // Cache only the relevant files (e.g., txt, png)
+                if (
+                    event.request.url.endsWith(".txt") ||
+                    event.request.url.endsWith(".png")
+                ) {
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, networkResponse.clone());
+                    });
+                }
+                return networkResponse;
+            });
         })
     );
 });
